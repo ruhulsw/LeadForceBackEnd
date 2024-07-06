@@ -4,7 +4,7 @@ const path = require("path");
 const controllars = require("../controllars/All");
 const VerifyToken = require("./../middleware/auth");
 
-router.post("/signup", controllars.Signup);
+// router.post("/signup", controllars.Signup);
 router.post("/login", controllars.Login);
 
 router.post("/upload-data/:userId", controllars.AddData);
