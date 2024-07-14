@@ -20,16 +20,28 @@ process.on("message", async ({ userId, page = 1, limit = 20, filters }) => {
     const query = { userId: objectId };
 
     if (filters.employees && filters.employees.length > 0) {
-      query["DataObject.# Employees"] = { $in: filters.employees };
+      query["DataObject.# Employees"] = {
+        $in: filters.employees.map((emp) => new RegExp(`^${emp}$`, "i")),
+      };
     }
     if (filters.countries && filters.countries.length > 0) {
-      query["DataObject.Country"] = { $in: filters.countries };
+      query["DataObject.Country"] = {
+        $in: filters.countries.map(
+          (country) => new RegExp(`^${country}$`, "i")
+        ),
+      };
     }
     if (filters.industries && filters.industries.length > 0) {
-      query["DataObject.Industry"] = { $in: filters.industries };
+      query["DataObject.Industry"] = {
+        $in: filters.industries.map(
+          (industry) => new RegExp(`^${industry}$`, "i")
+        ),
+      };
     }
     if (filters.jobTitles && filters.jobTitles.length > 0) {
-      query["DataObject.Title"] = { $in: filters.jobTitles };
+      query["DataObject.Title"] = {
+        $in: filters.jobTitles.map((title) => new RegExp(`^${title}$`, "i")),
+      };
     }
 
     const data = await Data.find(query).skip(offset).limit(limit);
