@@ -5,8 +5,8 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 
 // Middleware
-app.use(bodyParser.urlencoded({ extended: false, limit: "100mb" }));
-app.use(bodyParser.json({ limit: "100mb" }));
+app.use(bodyParser.urlencoded({ extended: false, limit: "5000mb" }));
+app.use(bodyParser.json({ limit: "5000mb" }));
 app.use(cors());
 app.set("trust proxy", true);
 
