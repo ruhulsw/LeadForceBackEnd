@@ -52,7 +52,7 @@ process.on("message", async ({ userId, filters }) => {
 
     fs.writeFileSync(filePath, csv);
 
-    const Link = `http://localhost:7000/csv/${fileName}`;
+    const Link = `https://api.bigleadlist.xyz/csv/${fileName}`;
 
     const csvFile = new CsvFile({
       userId: objectId,
