@@ -20,10 +20,57 @@ process.on("message", async ({ userId, page = 1, limit = 20, filters }) => {
     const query = { userId: objectId };
 
     if (filters.employees && filters.employees.length > 0) {
-      query["DataObject.# Employees"] = {
-        $in: filters.employees.map((emp) => new RegExp(`^${emp}$`, "i")),
-      };
+      query["$or"] = filters.employees.map((range) => {
+        const [min, max] = range.split("-").map(Number);
+        if (!isNaN(min) && !isNaN(max)) {
+          return {
+            $expr: {
+              $and: [
+                {
+                  $gte: [
+                    {
+                      $convert: {
+                        input: {
+                          $trim: {
+                            input: "$DataObject.# Employees",
+                            chars: "# ",
+                          },
+                        },
+                        to: "int",
+                        onError: 0,
+                        onNull: 0,
+                      },
+                    },
+                    min,
+                  ],
+                },
+                {
+                  $lte: [
+                    {
+                      $convert: {
+                        input: {
+                          $trim: {
+                            input: "$DataObject.# Employees",
+                            chars: "# ",
+                          },
+                        },
+                        to: "int",
+                        onError: 0,
+                        onNull: 0,
+                      },
+                    },
+                    max,
+                  ],
+                },
+              ],
+            },
+          };
+        } else {
+          return { "DataObject.# Employees": new RegExp(`^${range}$`, "i") };
+        }
+      });
     }
+
     if (filters.countries && filters.countries.length > 0) {
       query["DataObject.Country"] = {
         $in: filters.countries.map(
@@ -31,17 +78,21 @@ process.on("message", async ({ userId, page = 1, limit = 20, filters }) => {
         ),
       };
     }
+
     if (filters.industries && filters.industries.length > 0) {
-      query["DataObject.Industry"] = {
-        $in: filters.industries.map(
-          (industry) => new RegExp(`^${industry}$`, "i")
-        ),
-      };
+      const industryRegexes = filters.industries.flatMap((industries) =>
+        industries
+          .split(",")
+          .map((industry) => new RegExp(industry.trim(), "i"))
+      );
+      query["DataObject.Industry"] = { $in: industryRegexes };
     }
+
     if (filters.jobTitles && filters.jobTitles.length > 0) {
-      query["DataObject.Title"] = {
-        $in: filters.jobTitles.map((title) => new RegExp(`^${title}$`, "i")),
-      };
+      const jobTitleRegexes = filters.jobTitles.flatMap((titles) =>
+        titles.split(",").map((title) => new RegExp(title.trim(), "i"))
+      );
+      query["DataObject.Title"] = { $in: jobTitleRegexes };
     }
 
     const data = await Data.find(query).skip(offset).limit(limit);
