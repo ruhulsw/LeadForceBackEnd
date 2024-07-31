@@ -17,14 +17,20 @@ process.on("message", async ({ userId, data }) => {
   try {
     const existingData = await Data.find({ userId: userId });
 
+    console.log("existingData", existingData);
+
     const existingEmails = new Set();
     existingData.forEach((entry) => {
       existingEmails.add(entry.DataObject.Email);
     });
 
+    console.log("existingEmails", existingEmails);
+
     const newData = data.filter(
       (newItem) => !existingEmails.has(newItem.Email)
     );
+
+    console.log("newData", newData);
 
     const totalUniqueData = newData.length;
 
@@ -53,6 +59,7 @@ process.on("message", async ({ userId, data }) => {
     });
   } catch (error) {
     console.error(error);
+
     process.send({
       message: "An error occurred while uploading data",
       error: error.toString(),
