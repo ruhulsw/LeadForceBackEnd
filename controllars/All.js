@@ -32,7 +32,7 @@ exports.AddData = async (req, res) => {
   const userId = req.params.userId;
   const { data } = req.body;
 
-  const numChunks = 6;
+  const numChunks = 30;
   const chunkSize = Math.ceil(data.length / numChunks);
 
   const dataChunks = [];

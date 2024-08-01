@@ -15,7 +15,35 @@ async function mongooseClose() {
 
 process.on("message", async ({ userId, data }) => {
   try {
-    const bulkOps = data.map((newItem) => ({
+    const existingData = await Data.find({ userId: userId });
+
+    console.log("existingData", existingData);
+
+    const existingEmails = new Set();
+    existingData.forEach((entry) => {
+      existingEmails.add(entry.DataObject.Email);
+    });
+
+    console.log("existingEmails", existingEmails);
+
+    const newData = data.filter(
+      (newItem) => !existingEmails.has(newItem.Email)
+    );
+
+    console.log("newData", newData);
+
+    const totalUniqueData = newData.length;
+
+    if (totalUniqueData === 0) {
+      process.send({
+        message: "No new unique data to upload",
+      });
+      await mongooseClose();
+      process.exit(0);
+      return;
+    }
+
+    const bulkOps = newData.map((newItem) => ({
       insertOne: {
         document: {
           userId: userId,
@@ -27,7 +55,7 @@ process.on("message", async ({ userId, data }) => {
     await Data.bulkWrite(bulkOps);
 
     process.send({
-      message: "Data uploaded successfully",
+      message: "Data uploaded successfully and merged with existing data",
     });
   } catch (error) {
     console.error(error);
