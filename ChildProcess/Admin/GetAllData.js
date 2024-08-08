@@ -18,9 +18,7 @@ async function mongooseClose() {
 
 process.on("message", async ({ userId, filters }) => {
   try {
-    const objectId = new mongoose.Types.ObjectId(userId);
-
-    const query = { userId: objectId };
+    const query = { userId: userId };
 
     if (filters.employees && filters.employees.length > 0) {
       query["DataObject.# Employees"] = { $in: filters.employees };
