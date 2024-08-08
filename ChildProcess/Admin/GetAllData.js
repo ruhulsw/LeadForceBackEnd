@@ -1,7 +1,10 @@
 const mongoose = require("mongoose");
 const CsvFile = require("../../models/CsvFile");
 const Data = require("../../models/data");
-const { Parser } = require("json2csv");
+const {
+  Parser,
+  transforms: { unwind },
+} = require("json2csv");
 const fs = require("fs");
 const path = require("path");
 
@@ -14,6 +17,21 @@ mongoose.connect(URI);
 
 async function mongooseClose() {
   await mongoose.connection.close();
+}
+
+const batchSize = 1000; // Define your batch size here
+
+async function processBatch(query, skip, limit) {
+  const data = await Data.find(query).skip(skip).limit(limit).lean();
+
+  if (data.length === 0) return [];
+
+  // Flatten DataObject fields
+  const flattenedData = data.map((item) => ({
+    ...item.DataObject,
+  }));
+
+  return flattenedData;
 }
 
 process.on("message", async ({ userId, filters }) => {
@@ -98,9 +116,9 @@ process.on("message", async ({ userId, filters }) => {
       query["DataObject.Title"] = { $in: jobTitleRegexes };
     }
 
-    const data = await Data.find(query);
+    const totalItems = await Data.countDocuments(query);
 
-    if (data.length === 0) {
+    if (totalItems === 0) {
       process.send({
         message: "No data found for the provided filters",
       });
@@ -108,19 +126,22 @@ process.on("message", async ({ userId, filters }) => {
       process.exit(0);
     }
 
-    const flattenedData = data.map((item) => {
-      return {
-        ...item._doc.DataObject,
-      };
-    });
-
-    const json2csvParser = new Parser();
-    const csv = json2csvParser.parse(flattenedData);
-
     const fileName = `Lead_${Date.now()}.csv`;
     const filePath = path.join(__dirname, "../../csv_files", fileName);
+    const writeStream = fs.createWriteStream(filePath);
 
-    fs.writeFileSync(filePath, csv);
+    const json2csvParser = new Parser({ header: true });
+    writeStream.write(json2csvParser.parse([])); // Write CSV header
+
+    for (let skip = 0; skip < totalItems; skip += batchSize) {
+      const batchData = await processBatch(query, skip, batchSize);
+      if (batchData.length > 0) {
+        const csv = json2csvParser.parse(batchData, { header: false });
+        writeStream.write(csv);
+      }
+    }
+
+    writeStream.end();
 
     const Link = `https://api.bigleadlist.xyz/csv/${fileName}`;
 
