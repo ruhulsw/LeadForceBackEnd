@@ -22,18 +22,18 @@ process.on("message", async ({ userId, filters }) => {
 
     const query = { userId: userId };
 
-    if (filters.employees && filters.employees.length > 0) {
-      query["DataObject.# Employees"] = { $in: filters.employees };
-    }
-    if (filters.countries && filters.countries.length > 0) {
-      query["DataObject.Country"] = { $in: filters.countries };
-    }
-    if (filters.industries && filters.industries.length > 0) {
-      query["DataObject.Industry"] = { $in: filters.industries };
-    }
-    if (filters.jobTitles && filters.jobTitles.length > 0) {
-      query["DataObject.Title"] = { $in: filters.jobTitles };
-    }
+    // if (filters.employees && filters.employees.length > 0) {
+    //   query["DataObject.# Employees"] = { $in: filters.employees };
+    // }
+    // if (filters.countries && filters.countries.length > 0) {
+    //   query["DataObject.Country"] = { $in: filters.countries };
+    // }
+    // if (filters.industries && filters.industries.length > 0) {
+    //   query["DataObject.Industry"] = { $in: filters.industries };
+    // }
+    // if (filters.jobTitles && filters.jobTitles.length > 0) {
+    //   query["DataObject.Title"] = { $in: filters.jobTitles };
+    // }
 
     console.log("Constructed query:", query);
 
