@@ -22,6 +22,10 @@ process.on("message", async ({ userId, filters }) => {
 
     const query = { userId: objectId };
 
+    console.log("Filters:", filters);
+    console.log("User ID:", userId);
+    console.log("query:", query);
+
     if (filters.employees && filters.employees.length > 0) {
       query["DataObject.# Employees"] = { $in: filters.employees };
     }
