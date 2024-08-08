@@ -1,10 +1,7 @@
 const mongoose = require("mongoose");
 const CsvFile = require("../../models/CsvFile");
 const Data = require("../../models/data");
-const {
-  Parser,
-  transforms: { unwind },
-} = require("json2csv");
+const { Parser } = require("json2csv");
 const fs = require("fs");
 const path = require("path");
 
@@ -130,7 +127,7 @@ process.on("message", async ({ userId, filters }) => {
     const filePath = path.join(__dirname, "../../csv_files", fileName);
     const writeStream = fs.createWriteStream(filePath);
 
-    const json2csvParser = new Parser({ header: true });
+    const json2csvParser = new Parser();
     writeStream.write(json2csvParser.parse([])); // Write CSV header
 
     for (let skip = 0; skip < totalItems; skip += batchSize) {
