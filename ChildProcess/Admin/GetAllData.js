@@ -37,6 +37,14 @@ process.on("message", async ({ userId, filters }) => {
 
     const data = await Data.find(query);
 
+    if (data.length === 0) {
+      process.send({
+        message: "No data found for the provided filters",
+      });
+      await mongooseClose();
+      process.exit(0);
+    }
+
     // Flatten DataObject fields
     const flattenedData = data.map((item) => {
       return {
