@@ -20,26 +20,85 @@ process.on("message", async ({ userId, filters }) => {
   try {
     const objectId = new mongoose.Types.ObjectId(userId);
 
-    const query = { userId: userId };
+    const query = { userId: objectId };
 
-    // if (filters.employees && filters.employees.length > 0) {
-    //   query["DataObject.# Employees"] = { $in: filters.employees };
-    // }
-    // if (filters.countries && filters.countries.length > 0) {
-    //   query["DataObject.Country"] = { $in: filters.countries };
-    // }
-    // if (filters.industries && filters.industries.length > 0) {
-    //   query["DataObject.Industry"] = { $in: filters.industries };
-    // }
-    // if (filters.jobTitles && filters.jobTitles.length > 0) {
-    //   query["DataObject.Title"] = { $in: filters.jobTitles };
-    // }
+    if (filters.employees && filters.employees.length > 0) {
+      query["$or"] = filters.employees.map((range) => {
+        const [min, max] = range.split("-").map(Number);
+        if (!isNaN(min) && !isNaN(max)) {
+          return {
+            $expr: {
+              $and: [
+                {
+                  $gte: [
+                    {
+                      $convert: {
+                        input: {
+                          $trim: {
+                            input: "$DataObject.# Employees",
+                            chars: "# ",
+                          },
+                        },
+                        to: "int",
+                        onError: 0,
+                        onNull: 0,
+                      },
+                    },
+                    min,
+                  ],
+                },
+                {
+                  $lte: [
+                    {
+                      $convert: {
+                        input: {
+                          $trim: {
+                            input: "$DataObject.# Employees",
+                            chars: "# ",
+                          },
+                        },
+                        to: "int",
+                        onError: 0,
+                        onNull: 0,
+                      },
+                    },
+                    max,
+                  ],
+                },
+              ],
+            },
+          };
+        } else {
+          return { "DataObject.# Employees": new RegExp(`^${range}$`, "i") };
+        }
+      });
+    }
 
-    console.log("Constructed query:", query);
+    if (filters.countries && filters.countries.length > 0) {
+      query["DataObject.Country"] = {
+        $in: filters.countries.map(
+          (country) => new RegExp(`^${country}$`, "i")
+        ),
+      };
+    }
 
-    const data = await Data.find(query).limit(300);
+    if (filters.industries && filters.industries.length > 0) {
+      const industryRegexes = filters.industries.flatMap((industries) =>
+        industries
+          .split(",")
+          .map((industry) => new RegExp(industry.trim(), "i"))
+      );
+      query["DataObject.Industry"] = { $in: industryRegexes };
+    }
 
-    console.log("Found data:", data);
+    if (filters.jobTitles && filters.jobTitles.length > 0) {
+      const jobTitleRegexes = filters.jobTitles.flatMap((titles) =>
+        titles.split(",").map((title) => new RegExp(title.trim(), "i"))
+      );
+      query["DataObject.Title"] = { $in: jobTitleRegexes };
+    }
+
+    const data = await Data.find(query);
 
     if (data.length === 0) {
       process.send({
@@ -49,7 +108,6 @@ process.on("message", async ({ userId, filters }) => {
       process.exit(0);
     }
 
-    // Flatten DataObject fields
     const flattenedData = data.map((item) => {
       return {
         ...item._doc.DataObject,
