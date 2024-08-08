@@ -22,10 +22,6 @@ process.on("message", async ({ userId, filters }) => {
 
     const query = { userId: objectId };
 
-    console.log("Filters:", filters);
-    console.log("User ID:", userId);
-    console.log("query:", query);
-
     if (filters.employees && filters.employees.length > 0) {
       query["DataObject.# Employees"] = { $in: filters.employees };
     }
@@ -39,7 +35,11 @@ process.on("message", async ({ userId, filters }) => {
       query["DataObject.Title"] = { $in: filters.jobTitles };
     }
 
+    console.log("Constructed query:", query);
+
     const data = await Data.find(query);
+
+    console.log("Found data:", data);
 
     if (data.length === 0) {
       process.send({
