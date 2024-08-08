@@ -16,21 +16,6 @@ async function mongooseClose() {
   await mongoose.connection.close();
 }
 
-const batchSize = 1000; // Define your batch size here
-
-async function processBatch(query, skip, limit) {
-  const data = await Data.find(query).skip(skip).limit(limit).lean();
-
-  if (data.length === 0) return [];
-
-  // Flatten DataObject fields
-  const flattenedData = data.map((item) => ({
-    ...item.DataObject,
-  }));
-
-  return flattenedData;
-}
-
 process.on("message", async ({ userId, filters }) => {
   try {
     const objectId = new mongoose.Types.ObjectId(userId);
@@ -113,9 +98,9 @@ process.on("message", async ({ userId, filters }) => {
       query["DataObject.Title"] = { $in: jobTitleRegexes };
     }
 
-    const totalItems = await Data.countDocuments(query);
+    const data = await Data.find(query);
 
-    if (totalItems === 0) {
+    if (data.length === 0) {
       process.send({
         message: "No data found for the provided filters",
       });
@@ -123,22 +108,19 @@ process.on("message", async ({ userId, filters }) => {
       process.exit(0);
     }
 
-    const fileName = `Lead_${Date.now()}.csv`;
-    const filePath = path.join(__dirname, "../../csv_files", fileName);
-    const writeStream = fs.createWriteStream(filePath);
+    const flattenedData = data.map((item) => {
+      return {
+        ...item._doc.DataObject,
+      };
+    });
 
     const json2csvParser = new Parser();
-    writeStream.write(json2csvParser.parse([])); // Write CSV header
+    const csv = json2csvParser.parse(flattenedData);
 
-    for (let skip = 0; skip < totalItems; skip += batchSize) {
-      const batchData = await processBatch(query, skip, batchSize);
-      if (batchData.length > 0) {
-        const csv = json2csvParser.parse(batchData, { header: false });
-        writeStream.write(csv);
-      }
-    }
+    const fileName = `Lead_${Date.now()}.csv`;
+    const filePath = path.join(__dirname, "../../csv_files", fileName);
 
-    writeStream.end();
+    fs.writeFileSync(filePath, csv);
 
     const Link = `https://api.bigleadlist.xyz/csv/${fileName}`;
 
